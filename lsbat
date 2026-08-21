@@ -1,0 +1,309 @@
+#!/usr/bin/env bash
+
+[[ $DEBUG ]] && set -x
+set -eu -o pipefail
+
+usage() {
+	cat - <<EOF
+Usage:
+ lsbat [options] [<battery> ...]
+
+Display information about batteries.
+
+Options:
+ -a, --all           display full information
+ -o, --output <list> output columns
+ -n, --noheadings    don't print headings
+ -i, --ascii         use ascii characters only
+ -u, --micro         show values with micro unit prefix
+
+ -h, --help          display this screen
+ -V, --version       display version and exit
+
+Available output columns:
+      NAME  battery name
+     MODEL  battery model
+      TECH  battery's technology
+    STATUS  current operating status
+    SERIAL  serial number
+      PATH  path to sysfs directory
+  CAPACITY  current capacity in percents, from 0 to 100
+    ENERGY  current capacity in watt-hours
+   VOLTAGE  current voltage in volts
+    HEALTH  battery health in percents, from 0 to 100
+    CYCLES  number of battery cycles
+EOF
+}
+
+version() {
+	printf "lsbat version 1.0.0\n"
+}
+
+_error() {
+	format="$1"
+	shift
+	#shellcheck disable=SC2059
+	printf "lsbat: $format\n" "$@" >&2
+}
+
+is_battery() {
+	local type
+	local path="$1"
+	if [[ -d $path && -f $path/type ]]; then
+		type="$(<"$path/type")"
+		[[ $type == Battery ]] && return 0
+	fi
+	return 1
+}
+
+ALL_BATTERIES=()
+for supply in /sys/class/power_supply/*; do
+	if is_battery "$supply"; then
+		ALL_BATTERIES+=("$supply")
+	fi
+done
+unset supply
+
+if [[ ${#ALL_BATTERIES[@]} -eq 0 ]]; then
+	_error "no batteries found"
+	exit 2
+fi
+
+PARSED=$(getopt -o 'ahino:uV' -l 'all,ascii,help,noheadings,micro,output:,version' -n 'lsbat' -- "$@") || {
+	printf $'\n'
+	usage
+	exit 1
+}
+
+eval set -- "$PARSED"
+unset PARSED
+
+OPT_NOHEADINGS=
+OPT_ASCII=
+OPT_MICRO=
+OPT_OUTPUT="NAME,STATUS,CAPACITY,ENERGY,HEALTH"
+
+ALL_COLUMNS=(NAME MODEL TECH STATUS SERIAL PATH CAPACITY ENERGY VOLTAGE HEALTH CYCLES)
+
+while :; do
+	case "$1" in
+	--)
+		shift
+		break
+		;;
+	-a | --all)
+		OPT_OUTPUT="$(
+			IFS=,
+			printf "%s" "${ALL_COLUMNS[*]}"
+		)"
+		shift
+		;;
+	-o | --output)
+		OPT_OUTPUT="$2"
+		shift 2
+		;;
+	-n | --noheadings)
+		OPT_NOHEADINGS=1
+		shift
+		;;
+	-i | --ascii)
+		OPT_ASCII=1
+		shift
+		;;
+	-u | --micro)
+		OPT_MICRO=1
+		shift
+		;;
+	-h | --help)
+		usage
+		exit 0
+		;;
+	-V | --version)
+		version
+		exit 0
+		;;
+	*)
+		_error "unexpected option: %s" "$1"
+		exit 1
+		;;
+	esac
+done
+
+if [[ -n $OPT_MICRO ]]; then
+	[[ -n $OPT_ASCII ]] && MU_PREFIX="u" || MU_PREFIX='\u03bc' # greek mu
+fi
+
+BATTERIES=()
+if [[ $# -ne 0 ]]; then
+	for arg in "$@"; do
+		for bat in "${ALL_BATTERIES[@]}"; do
+			if [[ $bat == */$arg || $bat == "$arg" ]]; then
+				BATTERIES+=("$bat")
+				continue 2
+			fi
+		done
+
+		if [[ -e $arg ]]; then
+			if is_battery "$arg"; then
+				BATTERIES+=("$arg")
+				continue
+			fi
+
+			_error "not a battery: %s" "$arg"
+			exit 2
+		fi
+
+		_error "no such battery: %s" "$arg"
+		_error "(avaliable batteries: %s)" "${ALL_BATTERIES[*]}"
+		exit 2
+	done
+	unset arg bat
+else
+	BATTERIES=("${ALL_BATTERIES[@]}")
+fi
+
+IFS=, read -r -a TBL_COLS <<<"$OPT_OUTPUT"
+
+read_battery() {
+	local bat f
+	bat="$1"
+	f="$2"
+
+	if [ -f "$bat/$f" ]; then
+		printf "%s" "$(<"$bat/$f")"
+	else
+		printf "N/A"
+	fi
+}
+
+micro_to_base() {
+	local micro="$1"
+	local factor=1000000
+
+	awk -v v="$micro" -v f="$factor" 'BEGIN { printf "%.1f", v / f}'
+}
+
+format_unit() {
+	local val="$1"
+	local unit="$2"
+
+	if [[ $val == "N/A" ]]; then
+		printf "N/A"
+		return
+	fi
+
+	if [[ -n $OPT_MICRO ]]; then
+		printf "%d%b%s" "$val" "$MU_PREFIX" "$unit"
+	else
+		printf "%.1f%s" "$(micro_to_base "$val")" "$unit"
+	fi
+}
+
+get_capacity() {
+	local bat="$1"
+
+	local val
+	val="$(read_battery "$bat" capacity)"
+
+	if [[ $val == "N/A" ]]; then
+		printf "N/A"
+		return
+	fi
+
+	printf "%d%%" "$val"
+}
+
+get_health() {
+	local bat="$1"
+
+	local current design
+	current="$(read_battery "$bat" energy_full)"
+	design="$(read_battery "$bat" energy_full_design)"
+
+	if [[ $current == "N/A" || $design == "N/A" ]]; then
+		printf "N/A"
+		return
+	fi
+
+	awk -v a="$current" -v b="$design" 'BEGIN { printf "%d%%", a / b * 100 }'
+}
+
+output_tbl=
+declare -A right_aligned
+for bat in "${BATTERIES[@]}"; do
+	row=()
+	for col in "${TBL_COLS[@]}"; do
+		case "$col" in
+		NAME)
+			row+=("${bat##*/}")
+			;;
+		MODEL)
+			row+=("$(read_battery "$bat" model_name)")
+			;;
+		TECH)
+			row+=("$(read_battery "$bat" technology)")
+			;;
+		STATUS)
+			row+=("$(read_battery "$bat" status)")
+			;;
+		SERIAL)
+			right_aligned["$col"]=1
+			row+=("$(read_battery "$bat" serial_number)")
+			;;
+		PATH)
+			row+=("$bat")
+			;;
+		CAPACITY)
+			right_aligned["$col"]=1
+			row+=("$(get_capacity "$bat")")
+			;;
+		VOLTAGE)
+			right_aligned["$col"]=1
+			val="$(read_battery "$bat" voltage_now)"
+			row+=("$(format_unit "$val" V)")
+			;;
+		ENERGY)
+			right_aligned["$col"]=1
+			val=$(read_battery "$bat" energy_now)
+			row+=("$(format_unit "$val" Wh)")
+			;;
+		HEALTH)
+			right_aligned["$col"]=1
+			row+=("$(get_health "$bat")")
+			;;
+		CYCLES)
+			right_aligned["$col"]=1
+			row+=("$(read_battery "$bat" cycle_count)")
+			;;
+		*)
+			_error "unknown column: %s (valid: %s)" "$col" "${ALL_COLUMNS[*]}"
+			exit 2
+			;;
+		esac
+	done
+	output_tbl+="$(
+		IFS=,
+		printf "%s" "${row[*]}"
+	)"
+	output_tbl+=$'\n'
+done
+unset row val
+
+column_args=(
+	-t
+	-s ","
+	-N "$OPT_OUTPUT"
+)
+[[ -n $OPT_NOHEADINGS ]] && column_args+=(-d)
+
+if [[ ${#right_aligned[@]} -gt 0 ]]; then
+	column_args+=(
+		-R
+		"$(
+			IFS=,
+			printf "%s" "${!right_aligned[*]}"
+		)"
+	)
+fi
+
+column "${column_args[@]}" <<<"$output_tbl"
