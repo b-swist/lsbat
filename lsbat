@@ -25,6 +25,7 @@ Available output columns:
      MODEL  battery model
       TECH  battery's technology
     STATUS  current operating status
+ REMAINING  time remaining during charging/discharging
     SERIAL  serial number
       PATH  path to sysfs directory
   CAPACITY  current capacity in percents, from 0 to 100
@@ -81,9 +82,9 @@ unset PARSED
 OPT_NOHEADINGS=
 OPT_ASCII=
 OPT_MICRO=
-OPT_OUTPUT="NAME,STATUS,CAPACITY,ENERGY,HEALTH"
+OPT_OUTPUT="NAME,STATUS,REMAINING,CAPACITY,ENERGY,HEALTH"
 
-ALL_COLUMNS=(NAME MODEL TECH STATUS SERIAL PATH CAPACITY ENERGY VOLTAGE HEALTH CYCLES)
+ALL_COLUMNS=(NAME MODEL TECH STATUS REMAINING SERIAL PATH CAPACITY ENERGY VOLTAGE HEALTH CYCLES)
 
 while :; do
 	case "$1" in
@@ -228,6 +229,56 @@ get_health() {
 	awk -v a="$current" -v b="$design" 'BEGIN { printf "%d%%", a / b * 100 }'
 }
 
+get_remaining() {
+	local bat="$1"
+
+	local status energy
+	status="$(read_battery "$bat" status)"
+
+	case "$status" in
+	Charging)
+		local full now
+		now="$(read_battery "$bat" energy_now)"
+		full="$(read_battery "$bat" energy_full)"
+
+		if [[ $now == "N/A" || $full == "N/A" ]]; then
+			print "N/A"
+			return
+		fi
+
+		energy=$((full - now))
+		;;
+	Discharging)
+		energy="$(read_battery "$bat" energy_now)"
+
+		if [[ $energy == "N/A" ]]; then
+			print "N/A"
+			return
+		fi
+		;;
+	*)
+		printf "N/A"
+		return
+		;;
+	esac
+
+	local power
+	power="$(read_battery "$bat" power_now)"
+	if [[ $power == "N/A" ]]; then
+		print "N/A"
+		return
+	fi
+
+	awk -v power="$power" -v energy="$energy" 'BEGIN {
+		time = energy / power
+		h = int(time)
+		no_hrs = (time - h) * 60
+		m = int(no_hrs)
+		s = int((no_hrs - m) * 60)
+		printf "%02d:%02d:%02d", h, m, s
+	}'
+}
+
 output_tbl=
 declare -A right_aligned
 for bat in "${BATTERIES[@]}"; do
@@ -245,6 +296,10 @@ for bat in "${BATTERIES[@]}"; do
 			;;
 		STATUS)
 			row+=("$(read_battery "$bat" status)")
+			;;
+		REMAINING)
+			right_aligned["$col"]=1
+			row+=("$(get_remaining "$bat")")
 			;;
 		SERIAL)
 			right_aligned["$col"]=1
