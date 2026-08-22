@@ -165,7 +165,7 @@ fi
 
 IFS=, read -r -a TBL_COLS <<<"$OPT_OUTPUT"
 
-read_battery() {
+get_battery_info() {
 	local bat f
 	bat="$1"
 	f="$2"
@@ -204,7 +204,7 @@ get_capacity() {
 	local bat="$1"
 
 	local val
-	val="$(read_battery "$bat" capacity)"
+	val="$(get_battery_info "$bat" capacity)"
 
 	if [[ $val == "N/A" ]]; then
 		printf "N/A"
@@ -218,8 +218,8 @@ get_health() {
 	local bat="$1"
 
 	local current design
-	current="$(read_battery "$bat" energy_full)"
-	design="$(read_battery "$bat" energy_full_design)"
+	current="$(get_battery_info "$bat" energy_full)"
+	design="$(get_battery_info "$bat" energy_full_design)"
 
 	if [[ $current == "N/A" || $design == "N/A" ]]; then
 		printf "N/A"
@@ -233,13 +233,13 @@ get_remaining() {
 	local bat="$1"
 
 	local status energy
-	status="$(read_battery "$bat" status)"
+	status="$(get_battery_info "$bat" status)"
 
 	case "$status" in
 	Charging)
 		local full now
-		now="$(read_battery "$bat" energy_now)"
-		full="$(read_battery "$bat" energy_full)"
+		now="$(get_battery_info "$bat" energy_now)"
+		full="$(get_battery_info "$bat" energy_full)"
 
 		if [[ $now == "N/A" || $full == "N/A" ]]; then
 			print "N/A"
@@ -249,7 +249,7 @@ get_remaining() {
 		energy=$((full - now))
 		;;
 	Discharging)
-		energy="$(read_battery "$bat" energy_now)"
+		energy="$(get_battery_info "$bat" energy_now)"
 
 		if [[ $energy == "N/A" ]]; then
 			print "N/A"
@@ -263,7 +263,7 @@ get_remaining() {
 	esac
 
 	local power
-	power="$(read_battery "$bat" power_now)"
+	power="$(get_battery_info "$bat" power_now)"
 	if [[ $power == "N/A" ]]; then
 		print "N/A"
 		return
@@ -289,13 +289,13 @@ for bat in "${BATTERIES[@]}"; do
 			row+=("${bat##*/}")
 			;;
 		MODEL)
-			row+=("$(read_battery "$bat" model_name)")
+			row+=("$(get_battery_info "$bat" model_name)")
 			;;
 		TECH)
-			row+=("$(read_battery "$bat" technology)")
+			row+=("$(get_battery_info "$bat" technology)")
 			;;
 		STATUS)
-			row+=("$(read_battery "$bat" status)")
+			row+=("$(get_battery_info "$bat" status)")
 			;;
 		REMAINING)
 			right_aligned["$col"]=1
@@ -303,7 +303,7 @@ for bat in "${BATTERIES[@]}"; do
 			;;
 		SERIAL)
 			right_aligned["$col"]=1
-			row+=("$(read_battery "$bat" serial_number)")
+			row+=("$(get_battery_info "$bat" serial_number)")
 			;;
 		PATH)
 			row+=("$bat")
@@ -314,12 +314,12 @@ for bat in "${BATTERIES[@]}"; do
 			;;
 		VOLTAGE)
 			right_aligned["$col"]=1
-			val="$(read_battery "$bat" voltage_now)"
+			val="$(get_battery_info "$bat" voltage_now)"
 			row+=("$(format_unit "$val" V)")
 			;;
 		ENERGY)
 			right_aligned["$col"]=1
-			val=$(read_battery "$bat" energy_now)
+			val=$(get_battery_info "$bat" energy_now)
 			row+=("$(format_unit "$val" Wh)")
 			;;
 		HEALTH)
@@ -328,7 +328,7 @@ for bat in "${BATTERIES[@]}"; do
 			;;
 		CYCLES)
 			right_aligned["$col"]=1
-			row+=("$(read_battery "$bat" cycle_count)")
+			row+=("$(get_battery_info "$bat" cycle_count)")
 			;;
 		*)
 			_error "unknown column: %s (valid: %s)" "$col" "${ALL_COLUMNS[*]}"
