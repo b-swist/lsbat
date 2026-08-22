@@ -156,8 +156,7 @@ if [[ $# -ne 0 ]]; then
 			exit 2
 		fi
 
-		_error "no such battery: %s" "$arg"
-		_error "(avaliable batteries: %s)" "${ALL_BATTERIES[*]}"
+		_error "no such battery: %s (available: %s)" "$arg" "${ALL_BATTERIES[*]##*/}"
 		exit 2
 	done
 	unset arg bat path
