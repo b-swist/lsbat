@@ -144,9 +144,11 @@ if [[ $# -ne 0 ]]; then
 			fi
 		done
 
-		if [[ -e $arg ]]; then
-			if is_battery "$arg"; then
-				BATTERIES+=("$arg")
+		path="$(realpath "$arg")"
+
+		if [[ -e $path ]]; then
+			if is_battery "$path"; then
+				BATTERIES+=("$path")
 				continue
 			fi
 
@@ -158,7 +160,7 @@ if [[ $# -ne 0 ]]; then
 		_error "(avaliable batteries: %s)" "${ALL_BATTERIES[*]}"
 		exit 2
 	done
-	unset arg bat
+	unset arg bat path
 else
 	BATTERIES=("${ALL_BATTERIES[@]}")
 fi
