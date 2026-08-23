@@ -71,11 +71,6 @@ for supply in /sys/class/power_supply/*; do
 done
 unset supply
 
-if [[ ${#ALL_BATTERIES[@]} -eq 0 ]]; then
-	_error "no batteries found"
-	exit 2
-fi
-
 PARSED=$(getopt -o 'hino:uHOV' -l 'ascii,help,list-columns,noheadings,micro,output:,output-all,version' -n 'lsbat' -- "$@") || {
 	printf $'\n'
 	usage
@@ -185,6 +180,10 @@ if [[ $# -ne 0 ]]; then
 	done
 	unset arg bat path
 else
+	if [[ ${#ALL_BATTERIES[@]} -eq 0 ]]; then
+		_error "no batteries found"
+		exit 2
+	fi
 	BATTERIES=("${ALL_BATTERIES[@]}")
 fi
 
