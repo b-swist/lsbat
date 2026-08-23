@@ -23,9 +23,9 @@ Options:
 Available output columns:
       NAME  battery name
      MODEL  battery model
-      TECH  battery's technology
+      TECH  battery technology
     STATUS  current operating status
- REMAINING  time remaining during charging/discharging
+ REMAINING  time remaining utill fully charged/discharged
     SERIAL  serial number
       PATH  path to sysfs directory
   CAPACITY  current capacity in percents, from 0 to 100
@@ -84,7 +84,14 @@ OPT_ASCII=
 OPT_MICRO=
 OPT_OUTPUT="NAME,STATUS,REMAINING,CAPACITY,ENERGY,HEALTH"
 
-ALL_COLUMNS=(NAME MODEL TECH STATUS REMAINING SERIAL PATH CAPACITY ENERGY VOLTAGE HEALTH CYCLES)
+ALL_COLUMNS=(
+	NAME MODEL TECH
+	STATUS REMAINING
+	SERIAL PATH
+	CAPACITY ENERGY
+	VOLTAGE HEALTH
+	CYCLES
+)
 
 while :; do
 	case "$1" in
