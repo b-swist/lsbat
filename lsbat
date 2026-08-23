@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-[[ $DEBUG ]] && set -x
-set -eu -o pipefail
-
 usage() {
 	cat - <<EOF
 Usage:
