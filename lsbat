@@ -13,13 +13,18 @@ Display information about batteries.
 Options:
  -o, --output <list> output specified columns
  -O, --output-all    output all available columns
+ -H, --list-columns  list all supported columns
  -i, --ascii         use ascii characters only
  -u, --micro         show values with micro unit prefix
  -n, --noheadings    don't print headings
 
  -h, --help          display this screen
  -V, --version       display version and exit
+EOF
+}
 
+list_columns() {
+	cat - <<EOF
 Available output columns:
          NAME  battery name
         MODEL  battery model
@@ -71,7 +76,7 @@ if [[ ${#ALL_BATTERIES[@]} -eq 0 ]]; then
 	exit 2
 fi
 
-PARSED=$(getopt -o 'hino:uOV' -l 'ascii,help,noheadings,micro,output:,output-all,version' -n 'lsbat' -- "$@") || {
+PARSED=$(getopt -o 'hino:uHOV' -l 'ascii,help,list-columns,noheadings,micro,output:,output-all,version' -n 'lsbat' -- "$@") || {
 	printf $'\n'
 	usage
 	exit 1
@@ -118,6 +123,9 @@ while :; do
 		)"
 		shift
 		;;
+	-H | --list-columns)
+		list_columns
+		exit 0
 		;;
 	-n | --noheadings)
 		OPT_NOHEADINGS=1
@@ -351,7 +359,7 @@ for bat in "${BATTERIES[@]}"; do
 			row+=("$(get_battery_info "$bat" cycle_count)")
 			;;
 		*)
-			_error "unknown column: %s (valid: %s)" "$col" "${ALL_COLUMNS[*]}"
+			_error "unknown column: %s\n\n%s" "$col" "$(list_columns)"
 			exit 1
 			;;
 		esac
