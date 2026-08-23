@@ -11,11 +11,11 @@ Usage:
 Display information about batteries.
 
 Options:
- -a, --all           display full information
- -o, --output <list> output columns
- -n, --noheadings    don't print headings
+ -o, --output <list> output specified columns
+ -O, --output-all    output all available columns
  -i, --ascii         use ascii characters only
  -u, --micro         show values with micro unit prefix
+ -n, --noheadings    don't print headings
 
  -h, --help          display this screen
  -V, --version       display version and exit
@@ -71,7 +71,7 @@ if [[ ${#ALL_BATTERIES[@]} -eq 0 ]]; then
 	exit 2
 fi
 
-PARSED=$(getopt -o 'ahino:uV' -l 'all,ascii,help,noheadings,micro,output:,version' -n 'lsbat' -- "$@") || {
+PARSED=$(getopt -o 'hino:uOV' -l 'ascii,help,noheadings,micro,output:,output-all,version' -n 'lsbat' -- "$@") || {
 	printf $'\n'
 	usage
 	exit 1
@@ -107,16 +107,17 @@ while :; do
 		shift
 		break
 		;;
-	-a | --all)
+	-o | --output)
+		OPT_OUTPUT="$2"
+		shift 2
+		;;
+	-O | --output-all)
 		OPT_OUTPUT="$(
 			IFS=,
 			printf "%s" "${ALL_COLUMNS[*]}"
 		)"
 		shift
 		;;
-	-o | --output)
-		OPT_OUTPUT="$2"
-		shift 2
 		;;
 	-n | --noheadings)
 		OPT_NOHEADINGS=1
