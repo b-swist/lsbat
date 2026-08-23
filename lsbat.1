@@ -1,0 +1,109 @@
+.TH LSBAT 1 "2026-08-23" "1.0.0" "User Commands Manual"
+.SH NAME
+.B lsbat
+\- display information about batteries.
+.SH SYNOPSIS
+.B lsbat
+[options]
+.RI [ battery " ...]"
+.SH DESCRIPTION
+.B lsbat
+lists information about all available or specified batteries.
+The command gathers information about batteries from
+.I sysfs
+filesystem.
+.P
+By default, it prints information about every recognized battery.
+If one or more
+.I battery
+arguments are given, only those batteries are shown. Each
+.I battery
+may be specified either by its name from
+.I /sys/class/power_supply
+.RB "(e.g " BAT0 )
+or by a path to its directory.
+.SH OPTIONS
+.TP
+.BR \-o ", " \-\-output " " \fIlist\fR
+Specify which output columns to print. The list should be
+a comma-separated list of column names. Use the
+.B \-\-list\-columns
+option to get a list of all supported columns.
+.TP
+.BR \-O ", " \-\-output\-all
+Output all available columns.
+.TP
+.BR \-H ", " \-\-list\-columns
+List the columns that can be specified with the
+.B \-\-output
+option.
+.TP
+.BR \-n ", " \-\-noheadings
+Do not print a header row.
+.TP
+.BR \-i ", " \-\-ascii
+Use ASCII characters only. This affects the unit prefix
+when used with
+.B \-\-micro
+to display
+.B u
+instead of Greek mu letter
+.RB ( \(*m ).
+.TP
+.BR \-u ", " \-\-micro
+Show energy and voltage values in their native micro-unit form
+(as reported by the kernel), rather than converting them
+to their respectable base unit.
+.TP
+.BR \-h ", " \-\-help
+Display help text and exit.
+.TP
+.BR \-V ", " \-\-version
+Display version and exit.
+.SH EXIT STATUS
+.TP
+0
+Success.
+.TP
+1
+Invalid command line usage.
+.TP
+2
+No batteries found.
+.TP
+3
+Given
+.I battery
+argument does not refer to a valid battery.
+.SH EXAMPLES
+.TP
+List all batteries with the default columns:
+.EX
+$ lsbat
+.EE
+.TP
+Show every available field for battery BAT0 without table headers:
+.EX
+$ lsbat \-\-output\-all \-\-noheadings BAT0
+.EE
+.TP
+Show only name, status, and capacity of a battery using nonstandard path:
+.EX
+$ lsbat  o NAME,STATUS,CAPACITY /path/to/my/battery
+.EE
+.TP
+Show raw micro-unit energy and voltage values using ASCII only:
+.EX
+$ lsbat \-\-micro \-\-ascii
+.EE
+.SH FILES
+.TP
+.I /sys/class/power_supply/*
+Kernel interface used to get required information about batteries.
+.SH AUTHOR
+Bartosz Świst <bswist@protonmail.com>
+.SH SEE ALSO
+.BR upower (1),
+.BR acpi (1),
+.BR lsblk (8),
+.BR ls (1)
