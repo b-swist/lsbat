@@ -63,10 +63,10 @@ is_battery() {
 	return 1
 }
 
-ALL_BATTERIES=()
+SYSTEM_BATTERIES=()
 for supply in /sys/class/power_supply/*; do
 	if is_battery "$supply"; then
-		ALL_BATTERIES+=("$supply")
+		SYSTEM_BATTERIES+=("$supply")
 	fi
 done
 unset supply
@@ -156,7 +156,7 @@ fi
 BATTERIES=()
 if [[ $# -ne 0 ]]; then
 	for arg in "$@"; do
-		for bat in "${ALL_BATTERIES[@]}"; do
+		for bat in "${SYSTEM_BATTERIES[@]}"; do
 			if [[ $bat == */$arg || $bat == "$arg" ]]; then
 				BATTERIES+=("$bat")
 				continue 2
@@ -175,16 +175,16 @@ if [[ $# -ne 0 ]]; then
 			exit 3
 		fi
 
-		_error "no such battery: %s (available: %s)" "$arg" "${ALL_BATTERIES[*]##*/}"
+		_error "no such battery: %s (available: %s)" "$arg" "${SYSTEM_BATTERIES[*]##*/}"
 		exit 3
 	done
 	unset arg bat path
 else
-	if [[ ${#ALL_BATTERIES[@]} -eq 0 ]]; then
+	if [[ ${#SYSTEM_BATTERIES[@]} -eq 0 ]]; then
 		_error "no batteries found"
 		exit 2
 	fi
-	BATTERIES=("${ALL_BATTERIES[@]}")
+	BATTERIES=("${SYSTEM_BATTERIES[@]}")
 fi
 
 IFS=, read -r -a TBL_COLS <<<"$OPT_OUTPUT"
