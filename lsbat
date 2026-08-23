@@ -305,7 +305,7 @@ get_remaining() {
 }
 
 output_tbl=
-declare -A right_aligned
+declare -A right_aligned=()
 for bat in "${BATTERIES[@]}"; do
 	row=()
 	for col in "${TBL_COLS[@]}"; do
