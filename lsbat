@@ -21,18 +21,19 @@ Options:
  -V, --version       display version and exit
 
 Available output columns:
-       NAME  battery name
-      MODEL  battery model
- TECHNOLOGY  battery technology
-     STATUS  current operating status
-  REMAINING  time remaining utill fully charged/discharged
-     SERIAL  serial number
-       PATH  path to sysfs directory
-   CAPACITY  current capacity in percents, from 0 to 100
-     ENERGY  current capacity in watt-hours
-    VOLTAGE  current voltage in volts
-     HEALTH  battery health in percents, from 0 to 100
-     CYCLES  number of battery cycles
+         NAME  battery name
+        MODEL  battery model
+ MANUFACTURER  battery manufacturer
+   TECHNOLOGY  battery technology
+       STATUS  current operating status
+    REMAINING  time remaining utill fully charged/discharged
+       SERIAL  serial number
+         PATH  path to sysfs directory
+     CAPACITY  current capacity in percents, from 0 to 100
+       ENERGY  current capacity in watt-hours
+      VOLTAGE  current voltage in volts
+       HEALTH  battery health in percents, from 0 to 100
+       CYCLES  number of battery cycles
 EOF
 }
 
@@ -87,6 +88,7 @@ OPT_OUTPUT="NAME,STATUS,REMAINING,CAPACITY,ENERGY,HEALTH"
 ALL_COLUMNS=(
 	NAME
 	MODEL
+	MANUFACTURER
 	TECHNOLOGY
 	STATUS
 	REMAINING
@@ -304,6 +306,9 @@ for bat in "${BATTERIES[@]}"; do
 			;;
 		MODEL)
 			row+=("$(get_battery_info "$bat" model_name)")
+			;;
+		MANUFACTURER)
+			row+=("$(get_battery_info "$bat" manufacturer)")
 			;;
 		TECH | TECHNOLOGY)
 			row+=("$(get_battery_info "$bat" technology)")
