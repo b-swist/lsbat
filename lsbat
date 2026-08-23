@@ -169,11 +169,11 @@ if [[ $# -ne 0 ]]; then
 			fi
 
 			_error "not a battery: %s" "$arg"
-			exit 2
+			exit 3
 		fi
 
 		_error "no such battery: %s (available: %s)" "$arg" "${ALL_BATTERIES[*]##*/}"
-		exit 2
+		exit 3
 	done
 	unset arg bat path
 else
@@ -352,7 +352,7 @@ for bat in "${BATTERIES[@]}"; do
 			;;
 		*)
 			_error "unknown column: %s (valid: %s)" "$col" "${ALL_COLUMNS[*]}"
-			exit 2
+			exit 1
 			;;
 		esac
 	done
