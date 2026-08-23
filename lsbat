@@ -381,3 +381,5 @@ if [[ ${#right_aligned[@]} -gt 0 ]]; then
 fi
 
 column "${column_args[@]}" <<<"$output_tbl"
+
+# vim:noet:
