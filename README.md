@@ -60,6 +60,13 @@ See all available options by running:
 $ lsbat -h
 ```
 
+## TODO
+
+- [ ] shell completions
+- [ ] json output
+- [ ] more columns
+- [ ] implement adding extra columns to the default set using `-o +COLUMN`
+
 ## Inspirations
 
 This program is mainly inspired by ls* commands from [util-linux](https://github.com/util-linux/util-linux).
